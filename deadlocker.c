@@ -4,9 +4,9 @@
  * Description: Type, Function, and Global variable implementations for deadlocker
  * Author: Jordon Biondo
  * Created: Wed Nov  6 21:53:39 2013 (-0500)
- * Last-Updated: Wed Nov  6 22:13:18 2013 (-0500)
+ * Last-Updated: Wed Nov  6 23:30:04 2013 (-0500)
  *           By: Jordon Biondo
- *     Update #: 16
+ *     Update #: 17
  */
 
 /* Commentary: 
@@ -85,6 +85,7 @@ bool init_active_procs(void) {
   if (!happened) {
     for (int i = 0; i < PROC_LIMIT; i++) {
       if (procs[i].active) {
+
 	if (pthread_mutex_init(&(procs[i].msg_mutex), NULL) != 0) {
 	  printf("Could not create mutex! %s\n", strerror(errno));
 	  clean_procs();
@@ -92,9 +93,10 @@ bool init_active_procs(void) {
 	}
 	
 	if(pipe(procs[i].messages) < 0) {
-	  printf("%s\n", strerror(errno));
+	  printf("Could not create pipe! %s\n", strerror(errno));
 	  clean_procs();
 	  exit(-1);
+
 	} else {
 	  // reading proc pipes won't block!
 	  int flags = fcntl(procs[0].messages[MSG_OUT], F_GETFL, 0);
@@ -152,6 +154,7 @@ bool clean_procs(void) {
  * PROC owns RESOURCE
  */
 bool assign_owner(int proc, int resource){
+  printf("p%d now owns r%d\n", proc, resource);
   resources[resource].owner = proc;
   procs[proc].owning[resource] = true;
   procs[proc].active = true;
@@ -163,6 +166,7 @@ bool assign_owner(int proc, int resource){
  * Declare that PROC is requesting RESOURCE
  */
 bool request_ownership(int proc, int resource){
+  printf("p%d is blocked on r%d\n", proc, resource);
   procs[proc].requesting = resource;
   procs[proc].active = true;
   return true;
@@ -197,24 +201,28 @@ int get_resource_owner(int resource) {
  * Send a message to PROC
  */
 bool message_to_proc(int blocked_proc, int sender_proc, int receiver_proc){
-  printf("sending: %d:%d:%d\n", blocked_proc, sender_proc, receiver_proc);
-  int data[4] = {blocked_proc, sender_proc, receiver_proc, -1};
+  probe outgoing_probe = {blocked_proc, sender_proc, receiver_proc};
   int write_amt = 0;
   sim_process* receiver = &(procs[receiver_proc]);
-
-  if (pthread_mutex_lock(&(receiver->msg_mutex)) != 0) printf("FUCK!\n");
-  write_amt = write(procs[receiver_proc].messages[MSG_IN],
-		    (byte*)data, 
-		    sizeof(data));
-  if (write_amt != sizeof(data)) {
-    printf("Write failed! %s | %d:%d:%d\n", 
-	   strerror(errno), blocked_proc, sender_proc, receiver_proc);
-  }
-  //if (mutex_theirs(procs[receiver_proc].msg_mutex) < 0) printf("eff2! %s\n", strerror(errno));
-  //mutex_theirs(pipe_mut);
-  if (pthread_mutex_unlock(&(receiver->msg_mutex)) != 0) printf("FUCK!!!!!!\n");
   
-  if (write_amt != sizeof(data)) {
+  if (!(pthread_mutex_lock(&(receiver->msg_mutex)) == 0 && 
+	({
+	  bool result = true;
+	  write_amt = write(procs[receiver_proc].messages[MSG_IN],
+			    probe_bytes(outgoing_probe),
+			    sizeof(probe));
+	  if (write_amt != sizeof(probe)) {
+	    printf("Write failed! %s | %d:%d:%d\n", 
+		   strerror(errno), blocked_proc, sender_proc, receiver_proc);
+	    result = false;
+	  }
+	  result;
+	}) && (pthread_mutex_unlock(&(receiver->msg_mutex)) == 0))) {
+    printf("Warning: Error sending message \"%d:%d:%d\"", 
+	   blocked_proc, sender_proc, receiver_proc);
+  }
+    
+  if (write_amt != sizeof(probe)) {
     return false;
   }
   return true;
@@ -226,10 +234,11 @@ bool message_to_proc(int blocked_proc, int sender_proc, int receiver_proc){
  * Reading is nonblocking, so if there is no data,
  * false is immediately returned
  */
-bool proc_read_message(int proc, int data[4]) {
+bool proc_read_message(int proc, probe* data) {
   int read_amt;
-  int read_amt_desired = sizeof(int) * 4;
+  int read_amt_desired = sizeof(probe);
   sim_process* this = &(procs[proc]);
+
   pthread_mutex_lock(&(this->msg_mutex));
   read_amt = read(procs[proc].messages[MSG_OUT], (byte*)data, read_amt_desired);
   pthread_mutex_unlock(&(this->msg_mutex));
@@ -261,7 +270,7 @@ void* proc_worker_func(void* this_proc) {
   int this_index = (int)this_proc;
   sim_process* this = &(procs[this_index]);
   while(this->active) {
-    sleep(this_index+2);
+    proc_sleep();
     if (this->deadlocked) {
       printf("Process %d: reporting deadlock!\n", this_index);
       this->active = false;
@@ -276,21 +285,33 @@ void* proc_worker_func(void* this_proc) {
  */
 void* proc_messager_func(void* this_proc) {
   const int this_index = (int)this_proc;
-  printf("msgr: %d\n", this_index);
   sim_process* this = &(procs[this_index]);
+
   while(true) {
-    sleep(this_index+2);
+    proc_sleep();
     if (!this->deadlocked) {
       if (this->requesting >= 0) {
+	printf("p%d: new probe:       %d:%d:%d\n", 
+	       this_index, this_index, this_index, get_resource_owner(this->requesting));
 	message_to_proc(this_index, this_index, get_resource_owner(this->requesting));
       }
       
-      int incoming_probe[4];
-      if (proc_read_message(this_index, incoming_probe)) {
-	if (incoming_probe[0] == incoming_probe[2]) {
+      probe incoming_data;
+      if (proc_read_message(this_index, &incoming_data)) {
+	printf("p%d: reading:         %d:%d:%d\n", 
+	       this_index, incoming_data.blocked_proc , 
+	       incoming_data.sender, incoming_data.receiver);
+
+	if (incoming_data.blocked_proc == incoming_data.receiver) {
 	  this->deadlocked = true;
 	} else if (this->requesting >= 0) {
-	  message_to_proc(incoming_probe[0], this_index, get_resource_owner(this->requesting));
+	  printf("p%d: forwarding:      %d:%d:%d\n", 
+		 this_index, incoming_data.blocked_proc , 
+		 incoming_data.sender, incoming_data.receiver);
+	  
+	  message_to_proc(incoming_data.blocked_proc, 
+			  this_index, 
+			  get_resource_owner(this->requesting));
 	}
       }
     }
@@ -305,20 +326,22 @@ void* proc_messager_func(void* this_proc) {
 void run_simulation(int argc, char* argv[]) {
   init_active_procs();
   signal(SIGINT, handle_sigint);
-  for (int i = 0; i < RESOURCE_LIMIT; i++) 
-    if (resources[i].owner >= 0) printf("%d: %d\n", i, resources[i].owner);
-  
   for (int i = 0; i < PROC_LIMIT; i++) {
     if (procs[i].active) {
       pthread_create(&(procs[i].simulation), NULL, simulate_process_func, (void*)i);
     }
   }
   for (int i = 0; i < PROC_LIMIT; i++) {
-    if (procs[i].active) {
-      pthread_join(procs[i].simulation, (void*)NULL);
-    }
+    if (procs[i].active) pthread_join(procs[i].simulation, (void*)NULL);
   }
+}
 
+/**
+ * Sleep
+ */
+void proc_sleep(void) {
+  if (fast_mode) usleep(1000);
+  else sleep(2);
 }
 
 

@@ -4,9 +4,9 @@
  * Description: The grammer for deadlocker configuration files
  * Author: Jordon Biondo
  * Created: Wed Nov  6 21:53:39 2013 (-0500)
- * Last-Updated: Wed Nov  6 22:12:34 2013 (-0500)
+ * Last-Updated: Wed Nov  6 23:30:32 2013 (-0500)
  *           By: Jordon Biondo
- *     Update #: 17
+ *     Update #: 19
  */
 
 /* Commentary: 
@@ -42,9 +42,10 @@
 %{
   void yyerror (char *s);
   int yylex(void);
-  #include <stdio.h>     
-  #include <stdlib.h>
-  #include "deadlocker.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "deadlocker.h"
 %}
 
 
@@ -108,6 +109,8 @@ int main(int argc, char* argv[]) {
   // parse from stdin
   yyparse();
   
+  fast_mode = (argc > 1 && strcmp(argv[1], "-fast") == 0);
+    
   // run the simulation
   run_simulation(argc, argv);
   

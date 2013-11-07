@@ -4,9 +4,9 @@
  * Description: Type, Function, and Global variable definitions for deadlocker
  * Author: Jordon Biondo
  * Created: Wed Nov  6 21:53:39 2013 (-0500)
- * Last-Updated: Wed Nov  6 22:12:29 2013 (-0500)
+ * Last-Updated: Wed Nov  6 23:30:16 2013 (-0500)
  *           By: Jordon Biondo
- *     Update #: 15
+ *     Update #: 25
  */
 
 /* Commentary: 
@@ -40,7 +40,6 @@
  * ************************************************************** */
 #include <pthread.h>
 #include <stdbool.h>
-#include "lims.h"
 
 /* **************************************************************
  * Macros
@@ -93,16 +92,6 @@ typedef struct {
   bool deadlocked;		// true when deadlock found
 } sim_process;
 
-/**
- * Not used 
- */
-typedef struct {
-  int blocked_proc;
-  int sender;
-  int receiver;
-  int safety;
-} probe;
-
 
 /**
  * Message data type
@@ -110,9 +99,29 @@ typedef struct {
 typedef char byte;
 
 
+/**
+ * Probe data type
+ */
+typedef struct {
+  int blocked_proc;
+  int sender;
+  int receiver;
+} probe;
+
+
+/**
+ * Turn probe into byte* for pipe writing
+ */
+#define probe_bytes(probe) ((byte*)&probe)
+
 /* **************************************************************
  * Globals
  * ************************************************************** */
+
+/**
+ * If true, processes will practically not sleep
+ */
+bool fast_mode;
 
 /**
  * List of procs
@@ -183,7 +192,7 @@ bool message_to_proc(int blocked_proc, int sender_proc, int receiver_proc);
 /**
  * Have PROC read a message into DATA
  */
-bool proc_read_message(int proc, int data[4]);
+bool proc_read_message(int proc, probe* data);
 
 
 /**
@@ -206,6 +215,11 @@ void* proc_messager_func(void* this_proc);
  */
 void run_simulation(int argc, char* argv[]);
 
+/**
+ * Sleep
+ */
+void proc_sleep(void);
+  
 /**
  * Handle a sigint 
  */
