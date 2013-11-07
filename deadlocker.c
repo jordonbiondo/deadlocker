@@ -138,11 +138,13 @@ bool clean_procs(void) {
   static bool happened = false;
   if (!happened) {
     for (int i = 0; i < PROC_LIMIT; i++) {
-      procs[i].killed = true;
-      pthread_join(procs[i].simulation, (void*)NULL);
-      pthread_mutex_destroy(&(procs[i].msg_mutex));
-      close(procs[i].messages[MSG_IN]);
-      close(procs[i].messages[MSG_OUT]);
+      if (procs[i].simulation != NULL) {
+	procs[i].killed = true;
+	pthread_join(procs[i].simulation, (void*)NULL);
+	pthread_mutex_destroy(&(procs[i].msg_mutex));
+	close(procs[i].messages[MSG_IN]);
+	close(procs[i].messages[MSG_OUT]);
+      }
     }
     happened = true;
     return true;
