@@ -138,7 +138,7 @@ bool clean_procs(void) {
   static bool happened = false;
   if (!happened) {
     for (int i = 0; i < PROC_LIMIT; i++) {
-      if (procs[i].simulation != NULL) {
+      if (procs[i].simulation != (intptr_t)NULL) {
 	procs[i].killed = true;
 	pthread_join(procs[i].simulation, (void*)NULL);
       }
@@ -262,7 +262,7 @@ bool proc_read_message(int proc, probe* data) {
  * Starts up the worker and messager threads and waits
  */
 void* simulate_process_func(void* this_proc) {
-  const int this_index = (int)this_proc;
+  const int this_index = (int)(intptr_t)this_proc;
   sim_process* this = &(procs[this_index]);
   pthread_create(&(this->worker), NULL, proc_worker_func, this_proc);
   pthread_create(&(this->messager), NULL, proc_messager_func, this_proc);
@@ -276,7 +276,7 @@ void* simulate_process_func(void* this_proc) {
  * Simulated process main thread function
  */
 void* proc_worker_func(void* this_proc) {
-  int this_index = (int)this_proc;
+  int this_index = (int)(intptr_t)this_proc;
   sim_process* this = &(procs[this_index]);
   while(this->active && !this->killed) {
     proc_sleep();
@@ -293,7 +293,7 @@ void* proc_worker_func(void* this_proc) {
  * Simulated process messaging thread function
  */
 void* proc_messager_func(void* this_proc) {
-  const int this_index = (int)this_proc;
+  const int this_index = (int)(intptr_t)this_proc;
   sim_process* this = &(procs[this_index]);
 
   while(!this->killed) {
@@ -337,7 +337,7 @@ void run_simulation(int argc, char* argv[]) {
   signal(SIGINT, handle_sigint);
   for (int i = 0; i < PROC_LIMIT; i++) {
     if (procs[i].active) {
-      pthread_create(&(procs[i].simulation), NULL, simulate_process_func, (void*)i);
+      pthread_create(&(procs[i].simulation), NULL, simulate_process_func, (void*)(intptr_t)i);
     }
   }
   for (int i = 0; i < PROC_LIMIT; i++) {
