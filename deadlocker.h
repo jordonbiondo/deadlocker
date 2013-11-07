@@ -90,6 +90,7 @@ typedef struct {
   bool owning[RESOURCE_LIMIT];	// list of owned resource indices
   bool active;			// is the process active? (used in the config)
   bool deadlocked;		// true when deadlock found
+  bool killed;		        // when to stop all process threads
 } sim_process;
 
 

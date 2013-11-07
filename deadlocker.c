@@ -138,7 +138,9 @@ bool clean_procs(void) {
   static bool happened = false;
   if (!happened) {
     for (int i = 0; i < PROC_LIMIT; i++) {
-      //mutex_destroy(procs[i].msg_mutex);
+      procs[i].killed = true;
+      pthread_join(procs[i].simulation, (void*)NULL);
+      pthread_mutex_destroy(&(procs[i].msg_mutex));
       close(procs[i].messages[MSG_IN]);
       close(procs[i].messages[MSG_OUT]);
     }
@@ -269,7 +271,7 @@ void* simulate_process_func(void* this_proc) {
 void* proc_worker_func(void* this_proc) {
   int this_index = (int)this_proc;
   sim_process* this = &(procs[this_index]);
-  while(this->active) {
+  while(this->active && !this->killed) {
     proc_sleep();
     if (this->deadlocked) {
       printf("Process %d: reporting deadlock!\n", this_index);
@@ -287,7 +289,7 @@ void* proc_messager_func(void* this_proc) {
   const int this_index = (int)this_proc;
   sim_process* this = &(procs[this_index]);
 
-  while(true) {
+  while(!this->killed) {
     proc_sleep();
     if (!this->deadlocked) {
       if (this->requesting >= 0) {
