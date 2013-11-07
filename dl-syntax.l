@@ -1,7 +1,11 @@
 %{
-#include "y.tab.h"
-#include <string.h>
+  void yyerror (char *s);  
+  #include "y.tab.h"
+  #include <string.h>
 %}
+
+%option nounput
+%option noinput
 
 %%
 [pP][1-9][0-9]*  {
