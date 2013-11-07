@@ -1,0 +1,65 @@
+% Created 2013-11-07 Thu 10:21
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\usepackage{minted}
+\usepackage{minted}
+\providecommand{\alert}[1]{\textbf{#1}}
+
+\title{Deadlock Detection Project}
+\author{Jordon Biondo}
+\date{\today}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs Org-mode version 7.9.3f}}
+
+\begin{document}
+
+\maketitle
+
+\section{Design Document}
+\label{sec-1}
+\subsection{Data Structures}
+\label{sec-1-1}
+
+The main data structure is the process datastructure, it has three threads to simulate a process. A Simulated top level process thread, a main execution thread and a messenger thread. It also holds flags to tell if it is deadlocked, or killed. It also holds a list of owned resources and requested resources. It is shown below
+  /**
+   ,* Simulated process type
+   ,*/
+  typedef struct \{
+    pthread$_t$ simulation;         // the simulated process thread id
+    pthread$_t$ worker;             // the worker thread, reports deadlock
+    pthread$_t$ messager;           // sends/recieves/forwards probes, finds deadlock
+    int messages\footnote{DEFINITION NOT FOUND: 2 };              // processes communication pipe
+    pthread$_{\mathrm{mutex}}$$_t$ msg$_{\mathrm{mutex}}$;    // mutex for safe pipe IO  
+    int requesting;               // index of requested resource
+    bool owning[RESOURCE$_{\mathrm{LIMIT}}$];  // list of owned resource indices
+    bool active;                  // is the process active? (used in the config)
+    bool deadlocked;              // true when deadlock found
+    bool killed;                  // when to stop all process threads
+  \} sim$_{\mathrm{process}}$;
+  
+\subsection{Grammar}
+\label{sec-1-2}
+
+Flex and Yacc are used to parse configuration files which allows for easier future extension to the process state configuration files.
+\subsection{Algorithm}
+\label{sec-1-3}
+
+The program follows the same algorithm as described in the specification. After parsing the text, the simulated processes are started and probes begin to be sent. Probes are sent via pipes. Each simulated process has it's own pipe and mutex to control safe IO to that pipe.
+
+\end{document}

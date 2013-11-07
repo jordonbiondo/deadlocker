@@ -1,0 +1,28 @@
+#+OPTIONS: toc:nil
+#+TITLE: Deadlock Detection Project
+#+AUTHOR: Jordon Biondo
+* Design Document
+** Data Structures
+The main data structure is the process datastructure, it has three threads to simulate a process. A Simulated top level process thread, a main execution thread and a messenger thread. It also holds flags to tell if it is deadlocked, or killed. It also holds a list of owned resources and requested resources. It is shown below
+#+BEGIN_SRC c
+  /**
+   ,* Simulated process type
+   ,*/
+  typedef struct {
+    pthread_t simulation;         // the simulated process thread id
+    pthread_t worker;             // the worker thread, reports deadlock
+    pthread_t messager;           // sends/recieves/forwards probes, finds deadlock
+    int messages[2];              // processes communication pipe
+    pthread_mutex_t msg_mutex;    // mutex for safe pipe IO  
+    int requesting;               // index of requested resource
+    bool owning[RESOURCE_LIMIT];  // list of owned resource indices
+    bool active;                  // is the process active? (used in the config)
+    bool deadlocked;              // true when deadlock found
+    bool killed;                  // when to stop all process threads
+  } sim_process;
+  
+#+END_SRC
+** Grammar
+Flex and Yacc are used to parse configuration files which allows for easier future extension to the process state configuration files.
+** Algorithm
+The program follows the same algorithm as described in the specification. After parsing the text, the simulated processes are started and probes begin to be sent. Probes are sent via pipes. Each simulated process has it's own pipe and mutex to control safe IO to that pipe.

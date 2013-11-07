@@ -4,9 +4,9 @@
  * Description: Type, Function, and Global variable implementations for deadlocker
  * Author: Jordon Biondo
  * Created: Wed Nov  6 21:53:39 2013 (-0500)
- * Last-Updated: Wed Nov  6 23:30:04 2013 (-0500)
+ * Last-Updated: Thu Nov  7 10:17:04 2013 (-0500)
  *           By: Jordon Biondo
- *     Update #: 17
+ *     Update #: 18
  */
 
 /* Commentary: 

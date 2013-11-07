@@ -4,9 +4,9 @@
  * Description: Syntax token definitions for deadlocker
  * Author: Jordon Biondo
  * Created: Wed Nov  6 21:53:39 2013 (-0500)
- * Last-Updated: Wed Nov  6 23:33:35 2013 (-0500)
+ * Last-Updated: Thu Nov  7 10:17:14 2013 (-0500)
  *           By: Jordon Biondo
- *     Update #: 21
+ *     Update #: 22
  */
 
 /* Commentary:
