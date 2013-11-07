@@ -1,5 +1,5 @@
 deadlocker:  lex.yy.c y.tab.c deadlocker.c
-	gcc -std=gnu99 -Wall -g lex.yy.c y.tab.c deadlocker.c -o deadlocker
+	gcc -std=gnu99 -Wall -g -lpthread lex.yy.c y.tab.c deadlocker.c -o deadlocker
 
 lex.yy.c: dl-syntax.l
 	flex dl-syntax.l
